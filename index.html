@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Интерактивный тренажёр к уроку информатики «Средства искусственного интеллекта», 11 класс.">
+<title>Нейролаб 11</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap">
+<style>
+html{color-scheme:light}
+body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+/* Layout: one 720px column like a settings pane — large title, a segmented control for the five stations,
+   then grouped inset lists. The neuron diagram is the single expressive element; everything else is quiet. */
+:root{
+  --ground:#ECEEF2;
+  --surface:#FFFFFF;
+  --fill:#F3F4F7;
+  --ink:#0E1726;
+  --ink-2:#5A6372;
+  --hair:rgba(14,23,38,.11);
+  --accent:#2E47C2;
+  --on-accent:#FFFFFF;
+  --accent-tint:rgba(46,71,194,.09);
+  --fire:#E99A00;
+  --fire-tint:rgba(233,154,0,.16);
+  --ok:#1E7F38; --ok-tint:rgba(30,127,56,.11);
+  --bad:#B8281A; --bad-tint:rgba(184,40,26,.09);
+  --lift:0 0 0 .5px rgba(14,23,38,.06), 0 1px 2px rgba(14,23,38,.05), 0 6px 18px -10px rgba(14,23,38,.18);
+  --thumb:0 0 0 .5px rgba(14,23,38,.08), 0 2px 6px rgba(14,23,38,.14);
+  --font:"Onest", -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --r-group:22px; --r-ctl:12px; --pad:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#000000; --surface:#1B1C21; --fill:#26272E; --ink:#F1F2F5; --ink-2:#9AA0AB; --hair:rgba(255,255,255,.12);
+    --accent:#5269F0; --on-accent:#FFFFFF; --accent-tint:rgba(110,132,255,.16);
+    --fire:#FFB224; --fire-tint:rgba(255,178,36,.18);
+    --ok:#4CC46E; --ok-tint:rgba(76,196,110,.15); --bad:#FF7466; --bad-tint:rgba(255,116,102,.14);
+    --lift:0 0 0 .5px rgba(255,255,255,.07); --thumb:0 0 0 .5px rgba(255,255,255,.12), 0 2px 6px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#000000; --surface:#1B1C21; --fill:#26272E; --ink:#F1F2F5; --ink-2:#9AA0AB; --hair:rgba(255,255,255,.12);
+  --accent:#5269F0; --on-accent:#FFFFFF; --accent-tint:rgba(110,132,255,.16);
+  --fire:#FFB224; --fire-tint:rgba(255,178,36,.18);
+  --ok:#4CC46E; --ok-tint:rgba(76,196,110,.15); --bad:#FF7466; --bad-tint:rgba(255,116,102,.14);
+  --lift:0 0 0 .5px rgba(255,255,255,.07); --thumb:0 0 0 .5px rgba(255,255,255,.12), 0 2px 6px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--ground);color:var(--ink);font:400 16px/1.5 var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+.page{max-width:720px;margin:0 auto;padding-block:36px 72px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));
+  display:flex;flex-direction:column;gap:28px}
+
+/* large title */
+.masthead{display:flex;flex-direction:column;gap:6px;padding-inline:4px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.theme{width:min(300px,100%)}
+.theme button{min-height:32px;font-size:13px}
+.masthead h1{margin:0;font:700 clamp(34px,7vw,44px)/1.05 var(--font);letter-spacing:-.025em;text-wrap:balance}
+.masthead p{margin:0;color:var(--ink-2);font-size:17px;max-width:56ch;text-wrap:pretty}
+
+/* grouped list */
+.group{display:flex;flex-direction:column;gap:8px}
+.group-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-inline:16px;color:var(--ink-2);font-size:14px}
+.group-foot{padding-inline:16px;color:var(--ink-2);font-size:14px;text-wrap:pretty}
+.list{background:var(--surface);border-radius:var(--r-group);box-shadow:var(--lift);overflow:hidden}
+.row{position:relative;display:flex;align-items:center;gap:12px;min-height:52px;padding:12px 16px}
+.row + .row::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--hair)}
+.row.col{flex-direction:column;align-items:stretch}
+.row label,.row .key{flex:0 0 auto;font-weight:500}
+.row input[type=text]{flex:1;min-width:0;border:0;background:transparent;font:inherit;color:var(--ink);text-align:right;padding:6px 0;outline:none}
+.row input[type=text]::placeholder{color:var(--ink-2);opacity:.7}
+
+/* segmented control */
+.seg{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--fill);border-radius:12px;padding:3px;isolation:isolate}
+.seg .thumb{position:absolute;z-index:-1;top:3px;bottom:3px;left:3px;border-radius:9px;background:var(--surface);box-shadow:var(--thumb);
+  transition:transform .32s cubic-bezier(.3,.7,.2,1), width .32s cubic-bezier(.3,.7,.2,1)}
+:root[data-theme="dark"] .seg .thumb{background:#3A3B43}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .seg .thumb{background:#3A3B43} }
+.seg button{all:unset;box-sizing:border-box;min-width:0;cursor:pointer;min-height:36px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;border-radius:9px;
+  font:500 14px/1.15 var(--font);color:var(--ink-2);text-align:center;transition:color .2s}
+.seg button[aria-pressed="true"],.seg button[aria-current="true"]{color:var(--ink);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg .done-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex:0 0 auto}
+.seg.lg button{min-height:40px;font-size:15px}
+nav.stations{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;padding-block:8px;margin-block:-8px;background:var(--ground)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ground)}
+
+/* station header */
+.st-head{display:flex;flex-direction:column;gap:8px;padding-inline:4px}
+.st-head h2{margin:0;font:700 26px/1.15 var(--font);letter-spacing:-.018em;text-wrap:balance}
+.st-head p{margin:0;color:var(--ink-2);max-width:60ch;text-wrap:pretty}
+.st-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.capsule{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--fill);color:var(--ink-2);font-size:13px;font-weight:500}
+.capsule.star{background:var(--fire-tint);color:var(--ink)}
+.capsule.score{background:var(--accent-tint);color:var(--accent);font-weight:600}
+section.station{display:flex;flex-direction:column;gap:22px}
+
+/* buttons */
+.btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 22px;border-radius:14px;
+  background:var(--accent);color:var(--on-accent);font:600 17px/1 var(--font);letter-spacing:-.01em;text-align:center;
+  transition:transform .12s ease, filter .2s}
+.btn:active{transform:scale(.97)}
+.btn:hover{filter:brightness(1.06)}
+.btn:focus-visible{outline:3px solid var(--accent-tint);outline-offset:2px}
+.btn.wide{display:flex;width:100%}
+.btn.plain{background:var(--surface);color:var(--accent);box-shadow:var(--lift)}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.actions .btn{flex:1 1 180px}
+
+/* inline result notes */
+.note{border-radius:var(--r-group);padding:14px 16px;font-size:15px;text-wrap:pretty}
+.note.ok{background:var(--ok-tint);color:var(--ok)}
+.note.bad{background:var(--bad-tint);color:var(--bad)}
+.note.info{background:var(--surface);color:var(--ink);box-shadow:var(--lift)}
+.note b{font-weight:600}
+
+/* status glyph */
+.glyph{flex:0 0 22px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center}
+.glyph svg{width:12px;height:12px}
+.glyph.ok{background:var(--ok);color:var(--surface)} .glyph.bad{background:var(--bad);color:var(--surface)}
+
+/* station 1 rows */
+.case{display:grid;grid-template-columns:minmax(0,1fr) 196px;gap:10px 16px;align-items:center}
+.case .txt{min-width:0;text-wrap:pretty}
+.case .why{grid-column:1 / -1;display:flex;gap:10px;align-items:flex-start;color:var(--ink-2);font-size:14px}
+@media (max-width:560px){ .case{grid-template-columns:1fr} }
+
+/* station 2 neuron */
+.bench{background:var(--surface);border-radius:var(--r-group);box-shadow:var(--lift);padding:18px 16px 10px}
+svg.neuron{display:block;width:100%;height:auto;max-width:100%}
+svg.neuron .lbl{font:500 14px var(--font);fill:var(--ink-2)}
+svg.neuron .val{font:600 15px var(--font);fill:var(--ink)}
+svg.neuron .in{cursor:pointer;outline:none}
+svg.neuron .in:focus-visible circle{stroke:var(--accent);stroke-width:3}
+svg.neuron .soma{transition:fill .35s ease}
+svg.neuron .halo{transition:opacity .35s ease, r .35s ease}
+.bench-cap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:6px 4px 4px;color:var(--ink-2);font-size:14px}
+.formula{font-weight:600;color:var(--ink)}
+.slider{display:grid;grid-template-columns:28px minmax(0,1fr) 48px;gap:12px;align-items:center}
+.slider label{font-weight:600}
+.slider output{text-align:right;font-weight:600}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(var(--accent),var(--accent)) 0/var(--p,50%) 100% no-repeat, var(--fill)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--fill)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--accent)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-11px;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 3px 8px rgba(0,0,0,.18)}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border:0;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 3px 8px rgba(0,0,0,.18)}
+input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:8px}
+.tt-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 30px;gap:8px;align-items:center;text-align:center}
+.tt-row.head{color:var(--ink-2);font-size:13px;min-height:40px}
+.tt-row .y{font-weight:600}
+.tt-row.cur{background:var(--accent-tint)}
+.log{display:flex;flex-direction:column}
+.log .row{font-size:14px;color:var(--ink-2);min-height:44px}
+.log .row b{color:var(--ink);font-weight:600}
+
+/* station 3: chat bubbles */
+.choice{all:unset;cursor:pointer;position:relative;display:flex;align-items:center;gap:12px;min-height:52px;padding:12px 16px;width:100%;box-sizing:border-box}
+.choice + .choice::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--hair)}
+.choice .t{flex:1;min-width:0;text-wrap:pretty}
+.choice .check{flex:0 0 20px;height:20px;color:var(--accent);opacity:0;transition:opacity .15s}
+.choice[aria-pressed="true"] .check{opacity:1}
+.choice:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:var(--r-group)}
+.choice.good{background:var(--ok-tint)} .choice.weak{background:var(--bad-tint)}
+.choice.good .check{color:var(--ok)} .choice.weak .check{color:var(--bad)}
+.thread{display:flex;flex-direction:column;gap:6px;background:var(--surface);border-radius:var(--r-group);box-shadow:var(--lift);padding:16px}
+.bubble{max-width:86%;padding:10px 14px;border-radius:20px;font-size:15px;line-height:1.45;text-wrap:pretty;white-space:pre-line}
+.bubble.out{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:6px}
+.bubble.in{align-self:flex-start;background:var(--fill);color:var(--ink);border-bottom-left-radius:6px}
+.bubble.empty{background:var(--fill);color:var(--ink-2)}
+.who{font-size:12px;color:var(--ink-2);padding-inline:6px}
+.who.r{align-self:flex-end}
+.quality{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.quality i{height:6px;border-radius:3px;background:var(--fill);transition:background .25s}
+.quality i.on{background:var(--accent)}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+@media (max-width:560px){.pair{grid-template-columns:1fr}}
+.pick{all:unset;box-sizing:border-box;cursor:pointer;display:block;padding:12px 14px;border-radius:16px;background:var(--fill);font-size:15px;line-height:1.45;text-wrap:pretty;box-shadow:inset 0 0 0 1.5px transparent;transition:box-shadow .15s}
+.pick[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--accent)}
+.pick.good{box-shadow:inset 0 0 0 2px var(--ok);background:var(--ok-tint)}
+.pick.weak{box-shadow:inset 0 0 0 2px var(--bad);background:var(--bad-tint)}
+.pick:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* station 4 */
+.sent{all:unset;cursor:pointer;border-radius:6px;padding:1px 2px;margin:0 -2px;transition:background .15s, color .15s;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.sent:hover{background:var(--hair)}
+.sent:focus-visible{outline:2px solid var(--accent)}
+.sent[aria-pressed="true"]{background:var(--fire-tint);text-decoration:underline;text-decoration-color:var(--fire);text-decoration-thickness:2px;text-underline-offset:3px}
+.sent.caught{background:var(--ok-tint);color:var(--ok);text-decoration:none}
+.sent.missed{background:var(--bad-tint);color:var(--bad)}
+.sent.false-alarm{text-decoration:line-through;background:transparent;color:var(--ink-2)}
+
+/* station 5 */
+.summary{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center;background:var(--surface);border-radius:var(--r-group);box-shadow:var(--lift);padding:20px}
+@media (max-width:520px){.summary{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ring{position:relative;width:132px;height:132px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .num b{font:700 38px/1 var(--font);letter-spacing:-.03em}
+.ring .num span{font-size:13px;color:var(--ink-2)}
+.ring circle{fill:none;stroke-width:12;stroke-linecap:round}
+.ring .track{stroke:var(--fill)} .ring .bar{stroke:var(--accent);transition:stroke-dashoffset .7s cubic-bezier(.3,.7,.2,1)}
+.summary h3{margin:0 0 4px;font:600 20px/1.2 var(--font);letter-spacing:-.01em}
+.summary .who-line{color:var(--ink-2);margin:0 0 10px}
+.bars{display:flex;flex-direction:column;gap:8px;width:100%}
+.bar-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:4px 10px;align-items:center;font-size:14px;text-align:left}
+.bar-row .track{grid-column:1 / -1;height:4px;border-radius:2px;background:var(--fill);overflow:hidden}
+.bar-row .track i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .5s}
+.bar-row .v{text-align:right;color:var(--ink-2)}
+footer{color:var(--ink-2);font-size:13px;padding-inline:16px;text-wrap:pretty}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="topbar">
+    <h1>Нейролаб</h1>
+    <div class="seg theme" id="themeSeg" role="group" aria-label="Тема оформления">
+      <span class="thumb" aria-hidden="true"></span>
+      <button data-theme-set="auto" aria-pressed="true">Как в системе</button>
+      <button data-theme-set="light" aria-pressed="false">Светлая</button>
+      <button data-theme-set="dark" aria-pressed="false">Тёмная</button>
+    </div>
+    </div>
+    <p>Информатика, 11 класс. Пять коротких заданий к уроку «Средства искусственного интеллекта»: от отличия ИИ от обычной программы до проверки ответа чат-бота.</p>
+  </header>
+
+  <div class="group">
+    <div class="list">
+      <div class="row"><label for="student">Ученик</label><input type="text" id="student" placeholder="Фамилия и имя" autocomplete="off"></div>
+    </div>
+    <div class="group-foot">Имя нужно, чтобы показать учителю итоговый экран. Оно хранится только в этом браузере.</div>
+  </div>
+
+  <nav class="stations" aria-label="Задания">
+    <div class="seg lg" id="tabs">
+      <span class="thumb" aria-hidden="true"></span>
+      <button data-go="0" aria-current="true">Где ИИ</button>
+      <button data-go="1">Нейрон</button>
+      <button data-go="2">Промпт</button>
+      <button data-go="3">Факты</button>
+      <button data-go="4">Итог</button>
+    </div>
+  </nav>
+
+  <!-- 1 -->
+  <section class="station" id="st0" aria-labelledby="h0">
+    <div class="st-head">
+      <h2 id="h0">Где здесь искусственный интеллект?</h2>
+      <p>Решите для каждой ситуации: программа обучена на примерах или выполняет алгоритм, который заранее записал программист.</p>
+      <div class="st-meta"><span class="capsule">Базовый уровень</span><span class="capsule score" id="r0">0 из 8</span></div>
+    </div>
+    <div class="list" id="cases"></div>
+    <button class="btn wide" id="check0">Проверить</button>
+    <div id="fb0" class="note" hidden role="status"></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="station" id="st1" aria-labelledby="h1" hidden>
+    <div class="st-head">
+      <h2 id="h1">Нейрон своими руками</h2>
+      <p>Нейрон умножает каждый вход на его вес, складывает, добавляет смещение и выдаёт 1, если сумма больше нуля. Подберите веса так, чтобы нейрон вычислял логическую операцию. Нажимайте на входы x₁ и x₂ на схеме, чтобы менять их значения.</p>
+      <div class="st-meta"><span class="capsule">Базовый уровень</span><span class="capsule star">Исключающее ИЛИ — повышенный</span><span class="capsule score" id="r1">0 из 5</span></div>
+    </div>
+
+    <div class="seg" id="goalSeg" role="group" aria-label="Операция">
+      <span class="thumb" aria-hidden="true"></span>
+      <button data-goal="and" aria-pressed="true">И</button>
+      <button data-goal="or" aria-pressed="false">ИЛИ</button>
+      <button data-goal="xor" aria-pressed="false">Исключающее ИЛИ</button>
+    </div>
+
+    <div class="bench">
+      <svg class="neuron" viewBox="0 0 640 260" role="img" aria-labelledby="nt">
+        <title id="nt">Схема нейрона: два входа, веса, сумматор и выход</title>
+        <defs>
+          <radialGradient id="glow"><stop offset="0" stop-color="var(--fire)" stop-opacity=".55"/><stop offset="1" stop-color="var(--fire)" stop-opacity="0"/></radialGradient>
+        </defs>
+        <path id="ax1" d="M112 70 C 230 70, 270 130, 352 130" fill="none" stroke="var(--hair)" stroke-width="3" stroke-linecap="round"/>
+        <path id="ax2" d="M112 190 C 230 190, 270 130, 352 130" fill="none" stroke="var(--hair)" stroke-width="3" stroke-linecap="round"/>
+        <path id="axb" d="M386 220 L 386 172" fill="none" stroke="var(--hair)" stroke-width="2" stroke-dasharray="3 5" stroke-linecap="round"/>
+        <path id="axo" d="M430 130 L 548 130" fill="none" stroke="var(--hair)" stroke-width="3" stroke-linecap="round"/>
+        <g class="in" id="in1" tabindex="0" role="button" aria-label="Вход x1, нажмите чтобы переключить">
+          <circle cx="84" cy="70" r="28" fill="var(--fill)" stroke="var(--hair)" stroke-width="1.5"/>
+          <text x="84" y="76" text-anchor="middle" class="val" id="vx1">0</text>
+          <text x="84" y="30" text-anchor="middle" class="lbl">x₁</text>
+        </g>
+        <g class="in" id="in2" tabindex="0" role="button" aria-label="Вход x2, нажмите чтобы переключить">
+          <circle cx="84" cy="190" r="28" fill="var(--fill)" stroke="var(--hair)" stroke-width="1.5"/>
+          <text x="84" y="196" text-anchor="middle" class="val" id="vx2">0</text>
+          <text x="84" y="240" text-anchor="middle" class="lbl">x₂</text>
+        </g>
+        <text x="220" y="70" text-anchor="middle" class="lbl" id="lw1">w₁ = 0</text>
+        <text x="220" y="204" text-anchor="middle" class="lbl" id="lw2">w₂ = 0</text>
+        <text x="386" y="244" text-anchor="middle" class="lbl" id="lb">b = 0</text>
+        <circle class="halo" id="halo" cx="390" cy="130" r="40" fill="url(#glow)" opacity="0"/>
+        <circle class="soma" id="soma" cx="390" cy="130" r="40" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>
+        <text x="390" y="126" text-anchor="middle" class="val" style="font-size:20px">Σ</text>
+        <text x="390" y="148" text-anchor="middle" class="lbl" style="font-size:13px" id="sumTxt">0</text>
+        <circle id="outC" cx="576" cy="130" r="28" fill="var(--fill)" stroke="var(--hair)" stroke-width="1.5"/>
+        <text x="576" y="136" text-anchor="middle" class="val" id="vy">0</text>
+        <text x="576" y="90" text-anchor="middle" class="lbl">y</text>
+      </svg>
+      <div class="bench-cap"><span class="formula">y = 1, если w₁·x₁ + w₂·x₂ + b &gt; 0</span><span id="nowTxt">Сейчас: сумма 0, нейрон молчит</span></div>
+    </div>
+
+    <div class="group">
+      <div class="group-head"><span>Настройка</span></div>
+      <div class="list">
+        <div class="row"><div class="slider" style="width:100%"><label for="w1">w₁</label><input type="range" id="w1" min="-2" max="2" step="0.5" value="0"><output id="ow1" for="w1">0</output></div></div>
+        <div class="row"><div class="slider" style="width:100%"><label for="w2">w₂</label><input type="range" id="w2" min="-2" max="2" step="0.5" value="0"><output id="ow2" for="w2">0</output></div></div>
+        <div class="row"><div class="slider" style="width:100%"><label for="b">b</label><input type="range" id="b" min="-3" max="3" step="0.5" value="0"><output id="ob" for="b">0</output></div></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-head"><span id="goalTitle">Таблица истинности: x₁ И x₂</span><span id="hits">0 из 4 строк</span></div>
+      <div class="list" id="tt" role="table" aria-labelledby="goalTitle"></div>
+    </div>
+
+    <div id="fb1" class="note info" role="status">Двигайте ползунки. Когда все четыре строки совпадут, операция засчитается.</div>
+
+    <div class="group" id="xorBox" hidden>
+      <div class="group-head"><span>Почему для исключающего ИЛИ веса не находятся?</span></div>
+      <div class="list" id="xorOpts"></div>
+    </div>
+
+    <div class="group">
+      <div class="group-head"><span>Пусть нейрон учится сам</span></div>
+      <div class="list log" id="learnLog" aria-live="polite">
+        <div class="row">Если нейрон ошибся, каждый вес сдвигается на 0,5 · (нужно − получено) · x. Нажмите «Шаг обучения».</div>
+      </div>
+      <div class="actions">
+        <button class="btn plain" id="learnStep">Шаг обучения</button>
+        <button class="btn plain" id="learnAll">Учить до результата</button>
+        <button class="btn plain" id="learnReset">Сбросить веса</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="station" id="st2" aria-labelledby="h2" hidden>
+    <div class="st-head">
+      <h2 id="h2">Конструктор промпта</h2>
+      <p>Языковая модель продолжает текст запроса, поэтому от запроса зависит ответ. Нужен план индивидуального проекта «Распознавание рукописных цифр». Выберите лучший вариант в каждой из пяти частей.</p>
+      <div class="st-meta"><span class="capsule">Базовый уровень</span><span class="capsule star">Сравнение запросов — повышенный</span><span class="capsule score" id="r2">0 из 8</span></div>
+    </div>
+    <div id="comps" style="display:flex;flex-direction:column;gap:22px"></div>
+    <div class="group">
+      <div class="group-head"><span>Ваш запрос</span><span id="qTxt">0 из 5 частей</span></div>
+      <div class="thread">
+        <div class="who r">Вы</div>
+        <div class="bubble out empty" id="promptOut">Здесь появится запрос, когда вы выберете части.</div>
+        <div class="quality" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+    <button class="btn wide" id="check2a">Проверить запрос</button>
+    <div id="fb2a" class="note" hidden role="status"></div>
+
+    <div class="st-head" style="margin-top:8px">
+      <h2 style="font-size:21px">Какой запрос сработает лучше?</h2>
+      <p>В каждой паре выберите запрос, на который модель ответит полезнее.</p>
+    </div>
+    <div id="pairs" style="display:flex;flex-direction:column;gap:18px"></div>
+    <button class="btn wide" id="check2b">Проверить пары</button>
+    <div id="fb2b" class="note" hidden role="status"></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="station" id="st3" aria-labelledby="h3" hidden>
+    <div class="st-head">
+      <h2 id="h3">Поймай галлюцинацию</h2>
+      <p>Модель ответила уверенно, но в трёх предложениях есть фактические ошибки. Нажмите на предложения, которые считаете ложными. Лишняя отметка отнимает балл.</p>
+      <div class="st-meta"><span class="capsule">Базовый уровень</span><span class="capsule score" id="r3">0 из 3</span></div>
+    </div>
+    <div class="thread">
+      <div class="who r">Ученик</div>
+      <div class="bubble out">Коротко расскажи историю искусственного интеллекта.</div>
+      <div class="who">Чат-бот</div>
+      <div class="bubble in" id="sents" style="max-width:94%;white-space:normal"></div>
+    </div>
+    <button class="btn wide" id="check3">Проверить</button>
+    <div id="fb3" class="note" hidden role="status"></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="station" id="st4" aria-labelledby="h4" hidden>
+    <div class="st-head">
+      <h2 id="h4">Итог урока</h2>
+      <p>Шесть вопросов. После проверки покажите этот экран учителю.</p>
+      <div class="st-meta"><span class="capsule score" id="r4">0 из 6</span></div>
+    </div>
+    <div id="quiz" style="display:flex;flex-direction:column;gap:22px"></div>
+    <button class="btn wide" id="check4">Проверить ответы</button>
+
+    <div class="summary" id="result">
+      <div class="ring">
+        <svg viewBox="0 0 132 132" aria-hidden="true"><circle class="track" cx="66" cy="66" r="56"/><circle class="bar" id="ringBar" cx="66" cy="66" r="56" stroke-dasharray="351.86" stroke-dashoffset="351.86"/></svg>
+        <div class="num"><b id="total">0</b><span>из 30</span></div>
+      </div>
+      <div>
+        <h3 id="mark">Пройдите задания</h3>
+        <p class="who-line" id="resName">Ученик не указан</p>
+        <div class="bars" id="bars"></div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="group-head"><span>Как прошёл урок для вас?</span></div>
+      <div class="list" id="mood"></div>
+    </div>
+  </section>
+
+  <footer>Цифровой дидактический материал к уроку «Средства искусственного интеллекта», информатика, 11 класс, базовый уровень, ФГОС СОО. Прогресс сохраняется только в этом браузере.</footer>
+</main>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const CHECK='<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><path d="M4.5 10.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const G_OK='<span class="glyph ok"><svg viewBox="0 0 12 12"><path d="M2.5 6.3l2.2 2.2 4.8-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+const G_BAD='<span class="glyph bad"><svg viewBox="0 0 12 12"><path d="M3.3 3.3l5.4 5.4M8.7 3.3l-5.4 5.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>';
+const state={s:[0,0,0,0,0],name:"",mood:null};
+const MAX=[8,5,8,3,6];
+function save(){try{localStorage.setItem("neurolab11",JSON.stringify(state));}catch(e){}}
+try{const o=JSON.parse(localStorage.getItem("neurolab11")||"null"); if(o&&Array.isArray(o.s)) Object.assign(state,o);}catch(e){}
+const num=v=>String(v).replace(".",",").replace("-","−");
+
+/* segmented controls with sliding thumb */
+function placeThumb(seg){ const btns=$$("button",seg); const act=btns.find(b=>b.getAttribute("aria-pressed")==="true"||b.getAttribute("aria-current")==="true")||btns[0]; const th=$(".thumb",seg); if(!th||!act) return; th.style.width=act.offsetWidth+"px"; th.style.transform=`translateX(${act.offsetLeft-3}px)`; }
+const segs=$$(".seg"); window.addEventListener("resize",()=>segs.forEach(placeThumb));
+
+/* navigation */
+const tabs=$("#tabs");
+function go(i){ $$("section.station").forEach((s,k)=>s.hidden=k!==i); $$("button",tabs).forEach((b,k)=>b.setAttribute("aria-current",k===i?"true":"false")); placeThumb(tabs); if(i===4) renderResult(); if(i===1) requestAnimationFrame(()=>placeThumb($("#goalSeg"))); const top=$("#tabs").getBoundingClientRect().top+window.scrollY-24; if(window.scrollY>top) window.scrollTo({top,behavior:"smooth"}); }
+$$("button",tabs).forEach(b=>b.addEventListener("click",()=>go(+b.dataset.go)));
+function markTabs(){ $$("button",tabs).forEach((b,i)=>{ const has=b.querySelector(".done-dot"); if(state.s[i]===MAX[i]&&!has){ const d=document.createElement("span"); d.className="done-dot"; d.setAttribute("aria-label","выполнено"); b.appendChild(d);} }); placeThumb(tabs); }
+function setScore(i,v){ state.s[i]=Math.max(state.s[i],v); $("#r"+i).textContent=state.s[i]+" из "+MAX[i]; markTabs(); save(); }
+state.s.forEach((v,i)=>$("#r"+i).textContent=v+" из "+MAX[i]); markTabs();
+const nameIn=$("#student"); nameIn.value=state.name||""; nameIn.addEventListener("input",()=>{state.name=nameIn.value; save();});
+
+/* 1 */
+const CASES=[
+ ["Переводчик переводит фразу «Мне нравится информатика» на английский с учётом контекста.",true,"Машинный перевод работает на нейросетевых моделях, обученных на миллионах пар предложений."],
+ ["Электронная таблица сортирует список класса по алфавиту.",false,"Сортировка выполняется по точному алгоритму, обучения здесь нет."],
+ ["Камера в метро узнаёт человека по лицу.",true,"Распознавание лиц: модель обучена на большом наборе изображений."],
+ ["Калькулятор вычисляет 2⁶⁴.",false,"Арифметика выполняется по жёстким правилам."],
+ ["Видеосервис подбирает ролики, похожие на те, что вы досмотрели.",true,"Рекомендательная система учится на истории просмотров миллионов пользователей."],
+ ["Будильник звонит каждый будний день в 7:00.",false,"Простое правило по расписанию."],
+ ["Голосовой помощник превращает вашу речь в текст запроса.",true,"Распознавание речи: нейросеть обучена на записях голоса."],
+ ["Программа на Python находит максимум в массиве из 100 чисел.",false,"Типовой алгоритм перебора, результат всегда один и тот же."]
+];
+const pick1=Array(CASES.length).fill(null);
+CASES.forEach((c,i)=>{ const r=document.createElement("div"); r.className="row"; r.innerHTML=`<div class="case" style="width:100%"><div class="txt">${c[0]}</div><div class="seg"><span class="thumb" aria-hidden="true" style="opacity:0"></span><button aria-pressed="false" data-v="1">Обучена</button><button aria-pressed="false" data-v="0">Алгоритм</button></div><div class="why" hidden></div></div>`;
+  const seg=$(".seg",r); $$("button",seg).forEach(b=>b.addEventListener("click",()=>{ pick1[i]=b.dataset.v==="1"; $$("button",seg).forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); $(".thumb",seg).style.opacity=1; placeThumb(seg); $(".why",r).hidden=true; }));
+  $("#cases").appendChild(r); });
+$("#check0").addEventListener("click",()=>{ let ok=0,empty=0; $$("#cases > .row").forEach((r,i)=>{ const w=$(".why",r); if(pick1[i]===null){empty++; return;} const good=pick1[i]===CASES[i][1]; if(good) ok++; w.innerHTML=(good?G_OK:G_BAD)+`<span>${good?"Верно.":"Неверно."} ${CASES[i][2]}</span>`; w.hidden=false; });
+  const fb=$("#fb0"); fb.hidden=false;
+  if(empty){ fb.className="note bad"; fb.textContent=`Ответьте на все ситуации: осталось ${empty}.`; return; }
+  setScore(0,ok); fb.className="note "+(ok===8?"ok":"info"); fb.innerHTML= ok===8? "<b>8 из 8.</b> Общий признак ИИ: решение не записано заранее, а получено обучением на данных." : `<b>Верно ${ok} из 8.</b> Прочитайте пояснения к ошибкам и проверьте ещё раз.`; });
+
+/* 2 */
+const GOALS={and:{t:"x₁ И x₂",f:(a,b)=>a&&b?1:0,name:"И"},or:{t:"x₁ ИЛИ x₂",f:(a,b)=>a||b?1:0,name:"ИЛИ"},xor:{t:"x₁ исключающее ИЛИ x₂",f:(a,b)=>a!==b?1:0,name:"исключающее ИЛИ"}};
+let goal="and"; const solved={and:false,or:false,xor:false}; let xorAnswered=false; let X=[0,0];
+const W={w1:$("#w1"),w2:$("#w2"),b:$("#b")};
+function fill(el){ const p=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty("--p",p+"%"); }
+function neuron(){ const w1=+W.w1.value,w2=+W.w2.value,b=+W.b.value; Object.values(W).forEach(fill);
+  $("#ow1").textContent=num(w1); $("#ow2").textContent=num(w2); $("#ob").textContent=num(b);
+  $("#lw1").textContent="w₁ = "+num(w1); $("#lw2").textContent="w₂ = "+num(w2); $("#lb").textContent="b = "+num(b);
+  const col=v=>v>0?"var(--accent)":(v<0?"var(--bad)":"var(--hair)");
+  [["#ax1",w1],["#ax2",w2]].forEach(([s,v])=>{ $(s).setAttribute("stroke",col(v)); $(s).setAttribute("stroke-width",2+Math.abs(v)*2.2); });
+  const s=w1*X[0]+w2*X[1]+b, y=s>0?1:0;
+  $("#vx1").textContent=X[0]; $("#vx2").textContent=X[1]; $("#vy").textContent=y; $("#sumTxt").textContent=num(Math.round(s*10)/10);
+  $("#soma").setAttribute("fill", y? "var(--fire)":"var(--surface)"); $("#halo").setAttribute("opacity", y?1:0); $("#halo").setAttribute("r", y?70:40);
+  $("#outC").setAttribute("fill", y?"var(--fire-tint)":"var(--fill)"); $("#axo").setAttribute("stroke", y?"var(--fire)":"var(--hair)");
+  $("#in1 circle").setAttribute("fill", X[0]?"var(--accent-tint)":"var(--fill)"); $("#in2 circle").setAttribute("fill", X[1]?"var(--accent-tint)":"var(--fill)");
+  $("#nowTxt").textContent=`Сейчас: сумма ${num(Math.round(s*10)/10)}, нейрон ${y?"срабатывает":"молчит"}`;
+  let hits=0, rows=`<div class="row tt-row head"><span>x₁</span><span>x₂</span><span>сумма</span><span>нужно</span><span>y</span></div>`;
+  [[0,0],[0,1],[1,0],[1,1]].forEach(([a,c])=>{ const sm=w1*a+w2*c+b, yy=sm>0?1:0, need=GOALS[goal].f(a,c), m=yy===need; if(m) hits++;
+    rows+=`<div class="row tt-row${a===X[0]&&c===X[1]?" cur":""}" role="row"><span>${a}</span><span>${c}</span><span>${num(sm)}</span><span>${need}</span><span class="y">${m?G_OK:G_BAD}</span></div>`; });
+  $("#tt").innerHTML=rows; $("#hits").textContent=`${hits} из 4 строк`;
+  const fb=$("#fb1");
+  if(hits===4 && goal!=="xor"){ fb.className="note ok"; fb.innerHTML=`<b>Нейрон вычисляет «${GOALS[goal].name}».</b> Запишите веса в тетрадь: w₁ = ${num(w1)}, w₂ = ${num(w2)}, b = ${num(b)}.`; if(!solved[goal]){ solved[goal]=true; score1(); } }
+  else if(goal==="xor"){ fb.className="note info"; fb.textContent=`Совпало строк: ${hits} из 4. Попробуйте разные настройки, затем ответьте на вопрос ниже.`; }
+  else { fb.className="note info"; fb.textContent=`Совпало строк: ${hits} из 4. Когда совпадут все четыре, операция засчитается.`; }
+}
+function score1(){ setScore(1,(solved.and?2:0)+(solved.or?2:0)+(xorAnswered?1:0)); }
+Object.values(W).forEach(el=>el.addEventListener("input",neuron));
+[["#in1",0],["#in2",1]].forEach(([s,k])=>{ const g=$(s); const t=()=>{X[k]=X[k]?0:1; neuron();}; g.addEventListener("click",t); g.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault(); t();} }); });
+$$("#goalSeg button").forEach(g=>g.addEventListener("click",()=>{ goal=g.dataset.goal; $$("#goalSeg button").forEach(x=>x.setAttribute("aria-pressed",x===g?"true":"false")); placeThumb($("#goalSeg")); $("#goalTitle").textContent="Таблица истинности: "+GOALS[goal].t; $("#xorBox").hidden=goal!=="xor"; logReset("Выбрана операция «"+GOALS[goal].name+"». Нажмите «Шаг обучения»."); neuron(); }));
+const XOR=[["Веса нужно брать дробными, а ползунок шагает по 0,5.",false],["Один нейрон проводит на плоскости только одну прямую границу, а точки (0, 1) и (1, 0) нельзя одной прямой отделить от (0, 0) и (1, 1). Нужен второй слой нейронов.",true],["Исключающее ИЛИ нельзя вычислить на компьютере.",false]];
+XOR.forEach(([t,r])=>{ const b=document.createElement("button"); b.className="choice"; b.setAttribute("aria-pressed","false"); b.innerHTML=`<span class="t">${t}</span><span class="check">${CHECK}</span>`;
+  b.addEventListener("click",()=>{ $$("#xorOpts .choice").forEach(x=>{x.classList.remove("good","weak"); x.setAttribute("aria-pressed","false");}); b.setAttribute("aria-pressed","true"); b.classList.add(r?"good":"weak");
+    if(r&&!xorAnswered){ xorAnswered=true; solved.xor=true; score1(); }
+    const fb=$("#fb1"); fb.className="note "+(r?"ok":"bad"); fb.innerHTML= r? "<b>Верно.</b> Это показали Минский и Пейперт в 1969 году. Развитие нейросетей замедлилось, пока не научились обучать многослойные сети." : "Нет. Подумайте, сколько прямых линий может провести один нейрон."; });
+  $("#xorOpts").appendChild(b); });
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+function logReset(t){ $("#learnLog").innerHTML=`<div class="row">${t}</div>`; epoch=0; }
+function logAdd(html){ const r=document.createElement("div"); r.className="row"; r.innerHTML=html; $("#learnLog").appendChild(r); const rows=$$("#learnLog .row"); if(rows.length>8) rows[0].remove(); }
+function learnEpoch(){ let errs=0; [[0,0],[0,1],[1,0],[1,1]].forEach(([a,c])=>{ const w1=+W.w1.value,w2=+W.w2.value,b=+W.b.value; const y=(w1*a+w2*c+b)>0?1:0, need=GOALS[goal].f(a,c), e=need-y; if(e){ errs++; W.w1.value=clamp(w1+.5*e*a,-2,2); W.w2.value=clamp(w2+.5*e*c,-2,2); W.b.value=clamp(b+.5*e,-3,3);} }); neuron(); return errs; }
+let epoch=0;
+$("#learnStep").addEventListener("click",()=>{ if(epoch===0) $("#learnLog").innerHTML=""; epoch++; const e=learnEpoch(); logAdd(`<b>Эпоха ${epoch}</b>&nbsp;ошибок ${e}, веса: w₁ = ${num(+W.w1.value)}, w₂ = ${num(+W.w2.value)}, b = ${num(+W.b.value)}${e===0?". Обучение завершено.":""}`); });
+$("#learnAll").addEventListener("click",()=>{ $("#learnLog").innerHTML=""; let k=0,e=1; while(k<20&&e){ epoch++; k++; e=learnEpoch(); logAdd(`<b>Эпоха ${epoch}</b>&nbsp;ошибок ${e}`);} logAdd(e===0?"<b>Готово.</b>&nbsp;Нейрон больше не ошибается.":"<b>За 20 эпох ошибки не исчезли.</b>&nbsp;Одного нейрона для этой задачи мало."); });
+$("#learnReset").addEventListener("click",()=>{ W.w1.value=0; W.w2.value=0; W.b.value=0; neuron(); logReset("Веса сброшены."); });
+neuron();
+
+/* 3 */
+const COMPS=[
+ {k:"Роль",h:"кем должна быть модель",o:[["Ты — опытный руководитель школьных проектов по информатике.",1],["Ты — самый умный ИИ в мире.",0],["Без роли.",0]]},
+ {k:"Задача",h:"что именно сделать",o:[["Помоги.",0],["Составь план индивидуального проекта «Распознавание рукописных цифр» для ученика 11 класса.",1],["Напиши проект про нейросети.",0]]},
+ {k:"Контекст",h:"что модели нужно знать",o:[["Я программирую на Python на уровне школьного курса, на проект есть 6 недель, защита — доклад на 7 минут.",1],["Мне очень надо.",0],["Учитель строгий.",0]]},
+ {k:"Формат",h:"как оформить ответ",o:[["Как получится.",0],["Сделай красиво.",0],["Дай таблицу: неделя, этап, результат этапа. Под таблицей — 3 источника для начала работы.",1]]},
+ {k:"Ограничения",h:"чего не делать",o:[["Не пиши готовый код и текст доклада: план нужен, чтобы я сделал проект сам.",1],["Сделай всё за меня.",0],["Можно выдумывать источники.",0]]}
+];
+const pick3=Array(COMPS.length).fill(null);
+COMPS.forEach((c,i)=>{ const g=document.createElement("div"); g.className="group"; g.innerHTML=`<div class="group-head"><span>${c.k}: ${c.h}</span></div><div class="list"></div>`;
+  c.o.forEach(([t],j)=>{ const b=document.createElement("button"); b.className="choice"; b.setAttribute("aria-pressed","false"); b.innerHTML=`<span class="t">${t}</span><span class="check">${CHECK}</span>`;
+    b.addEventListener("click",()=>{ pick3[i]=j; $$(".choice",g).forEach(x=>{x.setAttribute("aria-pressed",x===b?"true":"false"); x.classList.remove("good","weak");}); renderPrompt(); }); $(".list",g).appendChild(b); });
+  $("#comps").appendChild(g); });
+function renderPrompt(){ const parts=pick3.map((j,i)=>j===null?null:COMPS[i].o[j][0]).filter(t=>t&&t!=="Без роли."); const out=$("#promptOut");
+  if(parts.length){ out.textContent=parts.join("\n"); out.classList.remove("empty"); } else { out.textContent="Здесь появится запрос, когда вы выберете части."; out.classList.add("empty"); }
+  const chosen=pick3.filter(j=>j!==null).length; $("#qTxt").textContent=`${chosen} из 5 частей`;
+  const good=pick3.filter((j,i)=>j!==null&&COMPS[i].o[j][1]).length; $$(".quality i").forEach((el,k)=>el.classList.toggle("on",k<good)); }
+let s3a=0,s3b=0;
+$("#check2a").addEventListener("click",()=>{ const fb=$("#fb2a"); fb.hidden=false; if(pick3.includes(null)){ fb.className="note bad"; fb.textContent="Выберите вариант в каждой из пяти частей."; return; }
+  let g=0; $$("#comps .group").forEach((w,i)=>{ const j=pick3[i], ok=COMPS[i].o[j][1]; if(ok) g++; $$(".choice",w)[j].classList.add(ok?"good":"weak"); });
+  s3a=g; setScore(2,s3a+s3b); fb.className="note "+(g===5?"ok":"info"); fb.innerHTML= g===5? "<b>5 из 5.</b> В хорошем запросе есть роль, конкретная задача, контекст, формат ответа и ограничения." : `<b>Удачных частей: ${g} из 5.</b> Красным отмечены расплывчатые варианты: модель не знает, что вам нужно, и додумывает сама.`; });
+const PAIRS=[
+ ["Расскажи про нейросети.","Объясни ученику 11 класса в 5 предложениях, чем нейросеть отличается от обычной программы. Приведи 1 пример из жизни.",1,"Во втором запросе есть адресат, объём и пример."],
+ ["Проверь мой код на Python и объясни ошибку, не исправляя её за меня: [код].","Исправь код.",0,"В первом запросе есть материал и ограничение, которое помогает учиться."],
+ ["Придумай 3 вопроса для самопроверки по теме «Перцептрон» с ответами в конце.","Дай вопросы.",0,"В первом запросе указаны тема, количество и формат."]
+];
+const pick3b=Array(PAIRS.length).fill(null);
+PAIRS.forEach((p,i)=>{ const g=document.createElement("div"); g.className="group"; g.innerHTML=`<div class="group-head"><span>Пара ${i+1}</span></div><div class="list"><div class="pair"></div></div><div class="group-foot" hidden>${p[3]}</div>`;
+  [0,1].forEach(j=>{ const b=document.createElement("button"); b.className="pick"; b.textContent=p[j]; b.setAttribute("aria-pressed","false"); b.addEventListener("click",()=>{ pick3b[i]=j; $$(".pick",g).forEach(x=>{x.setAttribute("aria-pressed",x===b?"true":"false"); x.classList.remove("good","weak");}); }); $(".pair",g).appendChild(b); });
+  $("#pairs").appendChild(g); });
+$("#check2b").addEventListener("click",()=>{ const fb=$("#fb2b"); fb.hidden=false; if(pick3b.includes(null)){ fb.className="note bad"; fb.textContent="Выберите запрос в каждой паре."; return; }
+  let g=0; $$("#pairs .group").forEach((w,i)=>{ const ok=pick3b[i]===PAIRS[i][2]; if(ok) g++; $$(".pick",w)[pick3b[i]].classList.add(ok?"good":"weak"); $(".group-foot",w).hidden=false; });
+  s3b=g; setScore(2,s3a+s3b); fb.className="note "+(g===3?"ok":"info"); fb.innerHTML=`<b>Верно ${g} из 3.</b>`; });
+
+/* 4 */
+const SENTS=[
+ ["Идею проверки «может ли машина мыслить» предложил Алан Тьюринг в 1950 году.",true],
+ ["Термин «искусственный интеллект» появился в 1956 году на летнем семинаре в Дартмуте.",true],
+ ["Первый перцептрон построил Фрэнк Розенблатт в конце 1950-х годов.",true],
+ ["Компьютер Deep Blue впервые обыграл чемпиона мира по шахматам Гарри Каспарова в 1985 году.",false,"Deep Blue выиграл матч у Каспарова в 1997 году."],
+ ["В 2016 году программа AlphaGo обыграла Ли Седоля, одного из сильнейших шахматистов мира.",false,"Ли Седоль — мастер игры го, а не шахмат. AlphaGo играет в го."],
+ ["Современные языковые модели генерируют текст, раз за разом предсказывая наиболее вероятное продолжение.",true],
+ ["Чат-боты хранят внутри полную копию интернета и выдают из неё готовые проверенные ответы.",false,"Модель не хранит копию интернета: её знания — это настроенные веса, поэтому она может уверенно ошибаться."]
+];
+const pick4=SENTS.map(()=>false);
+SENTS.forEach((s,i)=>{ const b=document.createElement("button"); b.className="sent"; b.textContent=s[0]; b.setAttribute("aria-pressed","false"); b.addEventListener("click",()=>{ pick4[i]=!pick4[i]; b.setAttribute("aria-pressed",pick4[i]?"true":"false"); b.classList.remove("caught","missed","false-alarm"); }); $("#sents").appendChild(b); $("#sents").appendChild(document.createTextNode(" ")); });
+$("#check3").addEventListener("click",()=>{ let caught=0,fa=0,notes=[]; $$("#sents .sent").forEach((b,i)=>{ const bad=!SENTS[i][1]; b.classList.remove("caught","missed","false-alarm"); if(bad&&pick4[i]){caught++; b.classList.add("caught"); notes.push("Найдено: "+SENTS[i][2]);} else if(bad){ b.classList.add("missed"); notes.push("Пропущено: "+SENTS[i][2]); } else if(pick4[i]){ fa++; b.classList.add("false-alarm"); } });
+  const v=Math.max(0,caught-fa); setScore(3,v); const fb=$("#fb3"); fb.hidden=false; fb.className="note "+(v===3?"ok":"info");
+  fb.innerHTML=`<b>Найдено ошибок: ${caught} из 3${fa?`, лишних отметок: ${fa}`:""}.</b><br>`+notes.join("<br>")+"<br>Уверенный тон не гарантирует правильность. Даты, имена и факты проверяйте по надёжным источникам."; });
+
+/* 5 */
+const QUIZ=[
+ ["Что такое обучение модели ИИ?",["Программист записывает все правила вручную","Подбор параметров модели по примерам","Установка программы на компьютер"],1],
+ ["Нейрон с весами w₁ = 1, w₂ = 1 и смещением b = −1,5 вычисляет…",["И","ИЛИ","НЕ"],0],
+ ["Почему одного нейрона мало для исключающего ИЛИ?",["Нужна граница сложнее одной прямой","XOR нельзя записать таблицей истинности","Нейрон не умеет складывать"],0],
+ ["Что не относится к хорошему промпту?",["Формат ответа","Ограничения","Просьба «сделай как-нибудь»"],2],
+ ["Галлюцинация языковой модели — это…",["Сбой экрана","Правдоподобный, но ложный ответ","Слишком длинный ответ"],1],
+ ["Что из перечисленного — пример применения ИИ?",["Машинный перевод и распознавание речи","Сортировка массива пузырьком","Сумма в электронной таблице"],0]
+];
+const pick5=Array(QUIZ.length).fill(null);
+QUIZ.forEach((q,i)=>{ const g=document.createElement("div"); g.className="group"; g.innerHTML=`<div class="group-head"><span>${i+1}. ${q[0]}</span></div><div class="list"></div>`;
+  q[1].forEach((t,j)=>{ const b=document.createElement("button"); b.className="choice"; b.setAttribute("aria-pressed","false"); b.innerHTML=`<span class="t">${t}</span><span class="check">${CHECK}</span>`; b.addEventListener("click",()=>{ pick5[i]=j; $$(".choice",g).forEach(x=>{x.setAttribute("aria-pressed",x===b?"true":"false"); x.classList.remove("good","weak");}); }); $(".list",g).appendChild(b); });
+  $("#quiz").appendChild(g); });
+$("#check4").addEventListener("click",()=>{ let g=0; $$("#quiz .group").forEach((w,i)=>{ const opts=$$(".choice",w); opts.forEach(o=>o.classList.remove("good","weak")); if(pick5[i]===null) return; const ok=pick5[i]===QUIZ[i][2]; if(ok) g++; opts[pick5[i]].classList.add(ok?"good":"weak"); if(!ok){ opts[QUIZ[i][2]].classList.add("good"); opts[QUIZ[i][2]].setAttribute("aria-pressed","true"); } }); setScore(4,g); renderResult(); $("#result").scrollIntoView({behavior:"smooth",block:"center"}); });
+const NAMES=["Где ИИ","Нейрон","Промпт","Факты","Итоговые вопросы"];
+function renderResult(){ const t=state.s.reduce((a,b)=>a+b,0); $("#total").textContent=t; $("#ringBar").style.strokeDashoffset=351.86*(1-t/30);
+  $("#mark").textContent= t>=26?"Отметка 5": t>=20?"Отметка 4": t>=14?"Отметка 3": "Нужно повторить тему";
+  $("#resName").textContent= state.name? state.name : "Ученик не указан";
+  $("#bars").innerHTML=state.s.map((v,i)=>`<div class="bar-row"><span>${NAMES[i]}</span><span class="v">${v} из ${MAX[i]}</span><span class="track"><i style="width:${v/MAX[i]*100}%"></i></span></div>`).join(""); }
+["Всё понятно, могу объяснить другому","Понял(а), но нужны ещё примеры","Остались вопросы"].forEach((t,k)=>{ const b=document.createElement("button"); b.className="choice"; b.setAttribute("aria-pressed",String(state.mood)===String(k)?"true":"false"); b.innerHTML=`<span class="t">${t}</span><span class="check">${CHECK}</span>`; b.addEventListener("click",()=>{ state.mood=k; save(); $$("#mood .choice").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); }); $("#mood").appendChild(b); });
+
+/* theme switch */
+function applyTheme(t){ const root=document.documentElement; if(t==='auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme',t); $$('#themeSeg button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.themeSet===t?'true':'false')); placeThumb($('#themeSeg')); }
+let savedTheme='auto'; try{ savedTheme=localStorage.getItem('neurolab11-theme')||'auto'; }catch(e){}
+$$('#themeSeg button').forEach(b=>b.addEventListener('click',()=>{ applyTheme(b.dataset.themeSet); try{ localStorage.setItem('neurolab11-theme', b.dataset.themeSet); }catch(e){} }));
+applyTheme(savedTheme);
+
+go(0);
+requestAnimationFrame(()=>segs.forEach(placeThumb));
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>segs.forEach(placeThumb));
+})();
+</script>
+</body>
+</html>
