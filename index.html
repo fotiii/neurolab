@@ -183,6 +183,12 @@ section.station{display:flex;flex-direction:column;gap:24px}
 .btn.next:hover{background:transparent;text-decoration:underline;text-underline-offset:4px}
 .btn.next svg{width:18px;height:18px}
 .actions{display:flex;flex-wrap:wrap;gap:10px}
+.btn.sm{min-height:42px;padding:0 18px;font-size:15px}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.danger:hover{background:var(--bad);filter:brightness(1.07)}
+.confirm{display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:12px;background:var(--bad-tint);box-shadow:inset 4px 0 0 var(--bad);font-size:15px}
+.confirm .btns{display:flex;flex-wrap:wrap;gap:8px}
+.confirm .btns .btn{flex:1 1 120px}
 .actions .btn{flex:1 1 160px}
 
 /* notes */
@@ -336,6 +342,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
     </nav>
     <div class="side-foot">
       <div class="total"><span>Набрано</span><b><span id="totSide">0</span> <small>из 30</small></b></div>
+      <div class="reset-box"><button class="btn plain sm wide" data-reset>Начать заново</button></div>
     </div>
   </aside>
 
@@ -542,6 +549,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
         <div class="group-head"><span>Как прошёл урок для вас?</span></div>
         <div class="list" id="mood"></div>
       </div>
+      <div class="reset-box"><button class="btn plain wide" data-reset>Начать заново</button></div>
     </section>
 
     <footer>Цифровой дидактический материал к уроку «Средства искусственного интеллекта», информатика, 11 класс, базовый уровень, ФГОС СОО. Прогресс сохраняется только в этом браузере.</footer>
@@ -726,6 +734,13 @@ function renderResult(){ const t=state.s.reduce((a,b)=>a+b,0); $("#total").textC
   $("#resName").textContent= state.name? state.name : "Ученик не указан";
   $("#bars").innerHTML=state.s.map((v,i)=>`<div class="bar-row"><span>${NAMES[i]}</span><span class="v">${v} из ${MAX[i]}</span><span class="track"><i style="width:${v/MAX[i]*100}%"></i></span></div>`).join(""); }
 ["Всё понятно, могу объяснить другому","Понял(а), но нужны ещё примеры","Остались вопросы"].forEach((t,k)=>{ const b=document.createElement("button"); b.className="choice"; b.setAttribute("aria-pressed",String(state.mood)===String(k)?"true":"false"); b.innerHTML=`<span class="t">${t}</span><span class="check">${CHECK}</span>`; b.addEventListener("click",()=>{ state.mood=k; save(); $$("#mood .choice").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); }); $("#mood").appendChild(b); });
+
+/* reset */
+const RESET_HTML='<div class="confirm" role="alertdialog" aria-label="Сброс результатов"><div><b>Сбросить результаты?</b> Удалятся имя, баллы по всем заданиям и самооценка на этом устройстве.</div><div class="btns"><button class="btn danger sm" data-yes>Сбросить</button><button class="btn plain sm" data-no>Отмена</button></div></div>';
+$$(".reset-box").forEach(box=>{ const btn=$("[data-reset]",box);
+  btn.addEventListener("click",()=>{ btn.hidden=true; box.insertAdjacentHTML("beforeend",RESET_HTML); const c=$(".confirm",box); $("[data-no]",c).focus();
+    $("[data-no]",c).addEventListener("click",()=>{ c.remove(); btn.hidden=false; btn.focus(); });
+    $("[data-yes]",c).addEventListener("click",()=>{ try{ localStorage.removeItem("neurolab11"); }catch(e){} location.reload(); }); }); });
 
 /* theme */
 function applyTheme(t){ const root=document.documentElement; if(t==="auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme",t); $$("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.themeSet===t?"true":"false")); placeThumb($("#themeSeg")); }
